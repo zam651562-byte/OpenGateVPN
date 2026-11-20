@@ -26,6 +26,8 @@ no ads, no tracking — pick a gateway and connect.
   process is killed in the background.
 - **Race-free connection state machine** — unified retries, honest status badge,
   no phantom states.
+- **Official support links** — in-app Arabic support section with open/copy
+  actions for Telegram, Facebook, email, and Sham Cash.
 
 ## How it works
 
@@ -40,6 +42,9 @@ credentials — VPN Gate relays accept anonymous connections.
 Grab the latest signed APK from
 [**Releases**](../../releases) and install it directly
 (enable *Install unknown apps* for your browser/file manager when prompted).
+
+For official support channels and contact details, use the **الدعم** tab in the
+app. See [CHANGELOG.md](CHANGELOG.md) for changes.
 
 Requires Android 7.0+ (arm64-v8a or armeabi-v7a devices).
 
@@ -132,3 +137,14 @@ the VPN Gate academic experiment. Treat it accordingly: don't send credentials
 or sensitive data you wouldn't trust to an unknown relay operator, and be aware
 that VPN Gate logs and publishes relay traffic metadata as part of its research
 mission. This software is provided without warranty of any kind.
+
+## Network and security limitations
+
+The app uses the OpenVPN profile supplied by each VPN Gate relay. Transport
+options, DNS handling, and any traffic obfuscation therefore depend on that
+profile and relay; this release does not add a DPI-evasion protocol or claim
+that it bypasses a particular provider's filtering. Android's system-level
+Always-on VPN and “Block connections without VPN” settings are separate from
+the app and should be configured by the user if a device-wide lockdown is
+needed. Carrier-specific performance and leak behavior require real-device
+testing on those networks.

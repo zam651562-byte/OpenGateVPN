@@ -73,6 +73,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.SupportAgent
 import com.payaq.opengatevpn.data.model.VpnServerDisplay
 import com.payaq.opengatevpn.ui.theme.BorderHairline
 import com.payaq.opengatevpn.ui.theme.CardBackground
@@ -179,6 +180,7 @@ fun MainScreen(
                     2 -> LogsTabContent(
                         viewModel = viewModel
                     )
+                    3 -> SupportTabContent()
                 }
             }
 
@@ -324,6 +326,13 @@ private fun BottomNavBar(
             label = "Logs",
             isSelected = selectedTab == 2,
             onClick = { onTabSelected(2) }
+        )
+        NavTab(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Rounded.SupportAgent,
+            label = "الدعم",
+            isSelected = selectedTab == 3,
+            onClick = { onTabSelected(3) }
         )
     }
 }

@@ -22,8 +22,8 @@ android {
         applicationId = "com.payaq.opengatevpn"
         minSdk = 24
         targetSdk = 37
-        versionCode = 1
-        versionName = "1.2.0"
+        versionCode = 2
+        versionName = "1.2.1"
 
         // Real devices only; x86/x86_64 are for desktop emulators and cost ~14MB of libopenvpn.so
         ndk {
