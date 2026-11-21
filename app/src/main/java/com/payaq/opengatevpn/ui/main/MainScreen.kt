@@ -58,6 +58,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -101,6 +102,9 @@ import com.payaq.opengatevpn.R
 fun MainScreen(
     viewModel: VpnViewModel,
     onConnectClicked: (String) -> Unit,
+    onImportProfile: () -> Unit,
+    onExportProfile: (String) -> Unit,
+    onLanguageChange: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
     val state = viewModel.connectionState
@@ -150,7 +154,7 @@ fun MainScreen(
             TopBar(
                 isRefreshing = viewModel.isRefreshing,
                 onRefreshClick = { viewModel.loadServers() },
-                onSettingsClick = { /* Future settings */ }
+                onSettingsClick = { selectedTab = 4 }
             )
 
             // ── Tab Content ─────────────────────────────────────────────────────
@@ -181,6 +185,27 @@ fun MainScreen(
                         viewModel = viewModel
                     )
                     3 -> SupportTabContent()
+                    4 -> ProfilesTabContent(
+                        profiles = viewModel.importedProfiles,
+                        activeProfileId = viewModel.activeProfileId,
+                        profileMessage = viewModel.profileMessage,
+                        tunnelActive = state in listOf(
+                            ConnectionState.CONNECTED,
+                            ConnectionState.CONNECTING,
+                            ConnectionState.RECONNECTING,
+                            ConnectionState.PAUSED
+                        ),
+                        onImport = onImportProfile,
+                        onUseProfile = { id ->
+                            val selected = viewModel.selectImportedProfile(id)
+                            if (selected) selectedTab = 0
+                            selected
+                        },
+                        onSaveCredentials = viewModel::saveProfileCredentials,
+                        onExportProfile = onExportProfile,
+                        onLanguageChange = onLanguageChange,
+                        onDeleteProfile = viewModel::deleteImportedProfile
+                    )
                 }
             }
 
@@ -279,7 +304,7 @@ private fun SplashScreen() {
 
             // Subtitle Status
             Text(
-                text = "جارٍ التحضير...",
+                text = stringResource(R.string.splash_loading),
                 style = LabelCaps.copy(
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Normal,
@@ -309,30 +334,37 @@ private fun BottomNavBar(
         NavTab(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.Shield,
-            label = "الاتصال",
+            label = stringResource(R.string.nav_connection),
             isSelected = selectedTab == 0,
             onClick = { onTabSelected(0) }
         )
         NavTab(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.Dns,
-            label = "الخوادم",
+            label = stringResource(R.string.nav_servers),
             isSelected = selectedTab == 1,
             onClick = { onTabSelected(1) }
         )
         NavTab(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.Terminal,
-            label = "السجل",
+            label = stringResource(R.string.nav_logs),
             isSelected = selectedTab == 2,
             onClick = { onTabSelected(2) }
         )
         NavTab(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.SupportAgent,
-            label = "الدعم",
+            label = stringResource(R.string.nav_support),
             isSelected = selectedTab == 3,
             onClick = { onTabSelected(3) }
+        )
+        NavTab(
+            modifier = Modifier.weight(1f),
+            icon = Icons.Rounded.Settings,
+            label = stringResource(R.string.nav_profiles),
+            isSelected = selectedTab == 4,
+            onClick = { onTabSelected(4) }
         )
     }
 }
@@ -434,21 +466,34 @@ private fun TopBar(
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "سوريا",
+                text = stringResource(R.string.brand_name),
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
                 ),
                 color = Primary
             )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = "★ ★ ★",
+                style = LabelCaps.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
+                color = com.payaq.opengatevpn.ui.theme.StatusError
+            )
         }
 
         Row(verticalAlignment = Alignment.CenterVertically) {
+            IconButton(onClick = onSettingsClick) {
+                Icon(
+                    imageVector = Icons.Rounded.Settings,
+                    contentDescription = stringResource(R.string.accessibility_profiles),
+                    tint = TextMuted.copy(alpha = 0.8f)
+                )
+            }
             // Disabled while a refresh is in flight — overlapping fetches would race each other.
             IconButton(onClick = onRefreshClick, enabled = !isRefreshing) {
                 Icon(
                     imageVector = Icons.Rounded.Refresh,
-                    contentDescription = "Refresh Servers",
+                    contentDescription = stringResource(R.string.accessibility_refresh),
                     tint = when {
                         isRefreshing -> Primary
                         else -> TextMuted

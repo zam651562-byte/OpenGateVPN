@@ -35,6 +35,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -45,6 +47,7 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalLayoutDirection
 import com.payaq.opengatevpn.ui.theme.BorderHairline
+import com.payaq.opengatevpn.R
 import com.payaq.opengatevpn.ui.theme.Primary
 import com.payaq.opengatevpn.ui.theme.TextMuted
 
@@ -58,28 +61,29 @@ private data class SupportContact(
 @Composable
 fun SupportTabContent() {
     val context = LocalContext.current
+    val isArabic = LocalConfiguration.current.locales[0]?.language == "ar"
     val clipboard = LocalClipboardManager.current
     val contacts = listOf(
         SupportContact(
-            title = "قناة Telegram",
+            title = context.getString(R.string.support_telegram_channel),
             value = "t.me/+SiOMr4JAU8thZDFk",
             icon = Icons.Rounded.Send,
             uri = "https://t.me/+SiOMr4JAU8thZDFk"
         ),
         SupportContact(
-            title = "مجموعة Telegram",
+            title = context.getString(R.string.support_telegram_group),
             value = "t.me/+ZXt8aHvs5ok2ZjM0",
             icon = Icons.Rounded.Send,
             uri = "https://t.me/+ZXt8aHvs5ok2ZjM0"
         ),
         SupportContact(
-            title = "صفحة Facebook",
+            title = context.getString(R.string.support_facebook),
             value = "facebook.com/share/1DuqpyXuTa",
             icon = Icons.Rounded.Facebook,
             uri = "https://www.facebook.com/share/1DuqpyXuTa/"
         ),
         SupportContact(
-            title = "البريد الإلكتروني",
+            title = context.getString(R.string.support_email),
             value = "mwings740@gmail.com",
             icon = Icons.Rounded.Email,
             uri = "mailto:mwings740@gmail.com"
@@ -91,7 +95,9 @@ fun SupportTabContent() {
         )
     )
 
-    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Rtl) {
+    CompositionLocalProvider(
+        LocalLayoutDirection provides if (isArabic) LayoutDirection.Rtl else LayoutDirection.Ltr
+    ) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -100,7 +106,7 @@ fun SupportTabContent() {
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             Text(
-                text = "روابطنا والدعم الرسمي",
+                text = stringResource(R.string.support_title),
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
@@ -108,7 +114,7 @@ fun SupportTabContent() {
                 color = Primary
             )
             Text(
-                text = "للمساعدة أو الإبلاغ عن مشكلة، تواصل معنا عبر إحدى القنوات الرسمية. يمكنك فتح الرابط أو نسخه.",
+                text = stringResource(R.string.support_subtitle),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     textDirection = TextDirection.Content
                 ),
@@ -126,7 +132,7 @@ fun SupportTabContent() {
                             } catch (_: ActivityNotFoundException) {
                                 Toast.makeText(
                                     context,
-                                    "لا يوجد تطبيق لفتح هذا الرابط",
+                                    context.getString(R.string.support_open_error),
                                     Toast.LENGTH_SHORT
                                 ).show()
                             }
@@ -134,14 +140,14 @@ fun SupportTabContent() {
                     },
                     onCopy = {
                         clipboard.setText(AnnotatedString(contact.uri?.removePrefix("mailto:") ?: contact.value))
-                        Toast.makeText(context, "تم النسخ", Toast.LENGTH_SHORT).show()
+                        Toast.makeText(context, R.string.support_copied, Toast.LENGTH_SHORT).show()
                     }
                 )
             }
 
             Spacer(modifier = Modifier.height(4.dp))
             Text(
-                text = "عند الإبلاغ عن مشكلة، اذكر نوع الشبكة والخطوات التي سببتها، ولا ترسل كلمات مرور أو بيانات حساسة.",
+                text = stringResource(R.string.support_safety_note),
                 style = MaterialTheme.typography.bodySmall,
                 color = TextMuted,
                 modifier = Modifier.padding(bottom = 12.dp)

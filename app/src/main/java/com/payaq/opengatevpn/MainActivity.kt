@@ -1,6 +1,7 @@
 package com.payaq.opengatevpn
 
 import android.content.Intent
+import android.net.Uri
 import android.net.VpnService
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -8,7 +9,11 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.ActivityResult
 import androidx.activity.result.contract.ActivityResultContracts.StartActivityForResult
+import androidx.activity.result.contract.ActivityResultContracts.CreateDocument
+import androidx.activity.result.contract.ActivityResultContracts.OpenDocument
 import androidx.activity.viewModels
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import com.payaq.opengatevpn.ui.main.MainScreen
 import com.payaq.opengatevpn.ui.main.VpnViewModel
 import com.payaq.opengatevpn.ui.theme.OpenGateVPNTheme
@@ -23,6 +28,21 @@ class MainActivity : ComponentActivity() {
         StartActivityForResult(),
         ::handleVpnPermissionResult
     )
+
+    private val openProfileLauncher = registerForActivityResult(OpenDocument()) { uri: Uri? ->
+        uri?.let(viewModel::importOpenVpnProfile)
+    }
+
+    private var pendingExportProfileId: String? = null
+    private val exportProfileLauncher = registerForActivityResult(
+        CreateDocument("application/x-openvpn-profile")
+    ) { uri: Uri? ->
+        val profileId = pendingExportProfileId
+        pendingExportProfileId = null
+        if (uri != null && profileId != null) {
+            viewModel.exportOpenVpnProfile(profileId, uri)
+        }
+    }
 
     /**
      * Single field-based listener: registered in [onCreate], removed in [onDestroy].
@@ -56,7 +76,10 @@ class MainActivity : ComponentActivity() {
             OpenGateVPNTheme {
                 MainScreen(
                     viewModel = viewModel,
-                    onConnectClicked = ::checkPermissionAndConnect
+                    onConnectClicked = ::checkPermissionAndConnect,
+                    onImportProfile = { openProfileLauncher.launch(arrayOf("*/*")) },
+                    onExportProfile = ::exportProfile,
+                    onLanguageChange = ::changeLanguage
                 )
             }
         }
@@ -72,8 +95,7 @@ class MainActivity : ComponentActivity() {
         viewModel.pendingConfig = null
 
         if (result.resultCode == RESULT_OK && config != null) {
-            viewModel.onConnectRequested()
-            if (!viewModel.vpnManager.startVpn(config)) {
+            if (viewModel.onConnectRequested() && !viewModel.vpnManager.startVpn(config)) {
                 // Config died between request and grant — fail visibly, not via watchdog.
                 viewModel.onLaunchFailed()
             }
@@ -99,5 +121,15 @@ class MainActivity : ComponentActivity() {
                 viewModel.onLaunchFailed()
             }
         }
+    }
+
+    private fun exportProfile(profileId: String) {
+        val profile = viewModel.importedProfiles.firstOrNull { it.id == profileId } ?: return
+        pendingExportProfileId = profileId
+        exportProfileLauncher.launch("${profile.name}.ovpn")
+    }
+
+    private fun changeLanguage(languageTag: String) {
+        AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(languageTag))
     }
 }

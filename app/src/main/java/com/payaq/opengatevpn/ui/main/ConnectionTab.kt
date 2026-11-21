@@ -65,11 +65,13 @@ import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.nativeCanvas
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.payaq.opengatevpn.R
 import com.payaq.opengatevpn.data.model.VpnServer
 import com.payaq.opengatevpn.ui.theme.BorderHairline
 import com.payaq.opengatevpn.ui.theme.CardBackground
@@ -111,7 +113,7 @@ fun ConnectionTabContent(
         // Status Badge — label comes straight from the ViewModel so it can say
         // exactly what's happening (changing server, retrying x/3, ...) beyond the
         // coarse ConnectionState enum; dot color/pulse stay keyed on the state.
-        StatusBadge(state = state, label = viewModel.statusLabel)
+        StatusBadge(state = state, label = localizedConnectionStatus(viewModel.statusLabel))
 
         Spacer(modifier = Modifier.height(28.dp))
 
@@ -125,8 +127,9 @@ fun ConnectionTabContent(
                     ConnectionState.ERROR -> {
                         val config = viewModel.bestServerConfig
                         if (config != null) {
-                            viewModel.onConnectRequested()
-                            onConnectClicked(config)
+                            if (viewModel.onConnectRequested()) {
+                                onConnectClicked(config)
+                            }
                         }
                     }
                     ConnectionState.CONNECTED,
@@ -186,8 +189,9 @@ fun ConnectionTabContent(
                         // Single-shot: one attempt, then straight back to this
                         // banner on failure — no automatic retry chain.
                         viewModel.prepareManualRetry()
-                        viewModel.onConnectRequested()
-                        onConnectClicked(config)
+                        if (viewModel.onConnectRequested()) {
+                            onConnectClicked(config)
+                        }
                     }
                 },
                 onChangeServer = onNavigateToServers
@@ -200,6 +204,7 @@ fun ConnectionTabContent(
         ServerCard(
             state = state,
             server = server,
+            profileName = viewModel.activeProfileName,
             nodeCount = viewModel.displayServers.size,
             isBestServer = viewModel.isAutoSelectedBest,
             onClick = {
@@ -280,7 +285,7 @@ private fun ServerFailureBanner(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "RETRY",
+                    text = stringResource(R.string.connection_retry),
                     style = LabelCaps.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                     color = Primary
                 )
@@ -299,13 +304,46 @@ private fun ServerFailureBanner(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "CHANGE SERVER",
+                    text = stringResource(R.string.connection_change_server),
                     style = LabelCaps.copy(fontSize = 10.sp, fontWeight = FontWeight.Bold),
                     color = Color(0xFF00E5FF)
                 )
             }
         }
     }
+}
+
+@Composable
+private fun localizedConnectionStatus(label: String): String {
+    val resource = when (label) {
+        "SCANNING NODES..." -> R.string.connection_status_searching
+        "OPTIMAL GATEWAY READY" -> R.string.connection_status_ready_best
+        "GATEWAY READY" -> R.string.connection_status_ready
+        "CONNECTING..." -> R.string.connection_status_connecting
+        "RECONNECTING..." -> R.string.connection_status_reconnecting
+        "SECURE TUNNEL ACTIVE" -> R.string.connection_status_connected
+        "PAUSED · TAP TO RESUME" -> R.string.connection_status_paused
+        "DISCONNECTED" -> R.string.connection_status_disconnected
+        "SERVER UNREACHABLE · TAP TO RETRY" -> R.string.connection_status_error
+        "VPN PERMISSION REQUIRED" -> R.string.connection_status_permission
+        else -> null
+    }
+    return resource?.let { stringResource(it) } ?: label
+}
+
+@Composable
+private fun localizedStateName(state: ConnectionState): String {
+    val resource = when (state) {
+        ConnectionState.SEARCHING_NODES -> R.string.connection_status_searching
+        ConnectionState.IDLE -> R.string.connection_status_ready
+        ConnectionState.CONNECTING -> R.string.connection_status_connecting
+        ConnectionState.RECONNECTING -> R.string.connection_status_reconnecting
+        ConnectionState.CONNECTED -> R.string.connection_status_connected
+        ConnectionState.PAUSED -> R.string.connection_status_paused
+        ConnectionState.DISCONNECTED -> R.string.connection_status_disconnected
+        ConnectionState.ERROR -> R.string.connection_status_error
+    }
+    return stringResource(resource)
 }
 
 
@@ -592,7 +630,7 @@ private fun SquirclePowerButton(
 
         Icon(
             imageVector = Icons.Rounded.PowerSettingsNew,
-            contentDescription = "Power Toggle",
+            contentDescription = stringResource(R.string.connection_disconnect),
             tint = iconColor,
             modifier = Modifier.size(36.dp)
         )
@@ -670,7 +708,7 @@ private fun TelemetryBar(uploadSpeed: String, downloadSpeed: String) {
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        TelemetryStat(label = "UP", value = uploadSpeed)
+        TelemetryStat(label = "↑", value = uploadSpeed)
         Spacer(modifier = Modifier.width(24.dp))
         Box(
             modifier = Modifier
@@ -679,7 +717,7 @@ private fun TelemetryBar(uploadSpeed: String, downloadSpeed: String) {
                 .background(BorderHairline)
         )
         Spacer(modifier = Modifier.width(24.dp))
-        TelemetryStat(label = "DOWN", value = downloadSpeed)
+        TelemetryStat(label = "↓", value = downloadSpeed)
     }
 }
 
@@ -699,6 +737,7 @@ private fun TelemetryStat(label: String, value: String) {
 private fun ServerCard(
     state: ConnectionState,
     server: VpnServer?,
+    profileName: String?,
     nodeCount: Int,
     isBestServer: Boolean,
     onClick: () -> Unit
@@ -762,7 +801,23 @@ private fun ServerCard(
                     .border(1.dp, BorderHairline, CircleShape),
                 contentAlignment = Alignment.Center
             ) {
-                if (isSearching || server == null) {
+                if (profileName != null) {
+                    Text(
+                        text = profileName,
+                        style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = Primary,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.height(2.dp))
+                    Text(
+                        text = stringResource(R.string.connection_profile_status, localizedStateName(state)),
+                        style = TechnicalData.copy(fontSize = 11.sp),
+                        color = TextMuted,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                } else if (isSearching || server == null) {
                     Box(
                         modifier = Modifier
                             .size((18 * ringScale).dp)
@@ -795,14 +850,18 @@ private fun ServerCard(
             Column(modifier = Modifier.weight(1f)) {
                 if (isSearching || server == null) {
                     Text(
-                        text = "Scanning Nodes...",
+                        text = stringResource(R.string.connection_scanning),
                         style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.SemiBold),
                         color = Primary.copy(alpha = shimmerAlpha),
                         maxLines = 1
                     )
                     Spacer(modifier = Modifier.height(2.dp))
                     Text(
-                        text = if (nodeCount > 0) "Analyzing $nodeCount nodes" else "Connecting to VPN Gate...",
+                        text = if (nodeCount > 0) {
+                            stringResource(R.string.server_count, nodeCount)
+                        } else {
+                            stringResource(R.string.connection_connecting_directory)
+                        },
                         style = TechnicalData.copy(fontSize = 11.sp),
                         color = TextMuted
                     )
@@ -830,7 +889,7 @@ private fun ServerCard(
                                     .padding(horizontal = 6.dp, vertical = 2.dp)
                             ) {
                                 Text(
-                                    text = "★ BEST SERVER",
+                                    text = stringResource(R.string.connection_best_server),
                                     style = LabelCaps.copy(fontSize = 8.sp, fontWeight = FontWeight.Bold),
                                     color = StatusSuccess
                                 )
@@ -852,14 +911,14 @@ private fun ServerCard(
                         .padding(horizontal = 8.dp, vertical = 4.dp)
                 ) {
                     Text(
-                        text = "CHANGE",
+                        text = stringResource(R.string.connection_change),
                         style = LabelCaps.copy(fontSize = 9.sp),
                         color = TextMuted
                     )
                     Spacer(modifier = Modifier.width(4.dp))
                     Icon(
                         imageVector = Icons.AutoMirrored.Rounded.KeyboardArrowRight,
-                        contentDescription = "Change Server",
+                        contentDescription = stringResource(R.string.connection_change_server),
                         tint = TextMuted,
                         modifier = Modifier.size(12.dp)
                     )
@@ -886,7 +945,7 @@ private fun ServerCard(
                 // IP Address
                 Column {
                     Text(
-                        text = "IP ADDRESS",
+                        text = stringResource(R.string.connection_ip_address),
                         style = LabelCaps.copy(fontSize = 8.sp),
                         color = TextMuted
                     )
@@ -901,7 +960,7 @@ private fun ServerCard(
                 // Ping
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "LATENCY",
+                        text = stringResource(R.string.connection_latency),
                         style = LabelCaps.copy(fontSize = 8.sp),
                         color = TextMuted
                     )
@@ -920,7 +979,7 @@ private fun ServerCard(
                 // Speed
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
-                        text = "SPEED",
+                        text = stringResource(R.string.connection_speed),
                         style = LabelCaps.copy(fontSize = 8.sp),
                         color = TextMuted
                     )
@@ -935,7 +994,7 @@ private fun ServerCard(
                 // Score
                 Column(horizontalAlignment = Alignment.End) {
                     Text(
-                        text = "SCORE",
+                        text = stringResource(R.string.connection_score),
                         style = LabelCaps.copy(fontSize = 8.sp),
                         color = TextMuted
                     )
@@ -977,7 +1036,7 @@ private fun QuickActionRow(
             when (state) {
                 ConnectionState.CONNECTED -> {
                     QuickActionButton(
-                        label = "Pause",
+                        label = stringResource(R.string.connection_pause),
                         icon = Icons.Rounded.Pause,
                         tintColor = Primary,
                         borderColor = BorderHairline,
@@ -987,7 +1046,7 @@ private fun QuickActionRow(
                 }
                 ConnectionState.PAUSED -> {
                     QuickActionButton(
-                        label = "Resume",
+                        label = stringResource(R.string.connection_resume),
                         icon = Icons.Rounded.PlayArrow,
                         tintColor = StatusPaused,
                         borderColor = StatusPaused.copy(alpha = 0.8f),
@@ -997,7 +1056,7 @@ private fun QuickActionRow(
                 }
                 ConnectionState.RECONNECTING -> {
                     QuickActionButton(
-                        label = "Reconnecting...",
+                        label = stringResource(R.string.connection_reconnecting),
                         icon = Icons.Rounded.Refresh,
                         tintColor = StatusPaused,
                         borderColor = StatusPaused.copy(alpha = 0.5f),
@@ -1009,7 +1068,7 @@ private fun QuickActionRow(
             }
 
             QuickActionButton(
-                label = "Disconnect",
+                label = stringResource(R.string.connection_disconnect),
                 icon = Icons.Rounded.Close,
                 tintColor = StatusError,
                 borderColor = StatusError.copy(alpha = 0.35f),

@@ -2,8 +2,10 @@ package com.payaq.opengatevpn.ui.main
 
 import android.app.Application
 import android.content.Context
+import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.provider.OpenableColumns
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -18,11 +20,19 @@ import com.payaq.opengatevpn.data.model.toDisplay
 import com.payaq.opengatevpn.data.remote.VpnGateResult
 import com.payaq.opengatevpn.data.repository.VpnRepository
 import com.payaq.opengatevpn.data.vpn.VpnManager
+import com.payaq.opengatevpn.data.vpn.OpenVpnProfile
+import com.payaq.opengatevpn.data.vpn.OpenVpnProfileStore
+import com.payaq.opengatevpn.data.vpn.toBase64Config
 import de.blinkt.openvpn.core.ConnectionStatus
 import de.blinkt.openvpn.core.VpnStatus
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
+import java.io.IOException
+import java.nio.charset.StandardCharsets
 
 /** Connection states the UI renders. */
 enum class ConnectionState {
@@ -63,12 +73,21 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
 
     private val repository = VpnRepository()
     val vpnManager = VpnManager(application)
+    private val profileStore = OpenVpnProfileStore(application)
     private val preferences = application.getSharedPreferences("syria_vpn_preferences", Context.MODE_PRIVATE)
 
     // ── UI State ────────────────────────────────────────────────────────────────
     var vpnStatus by mutableStateOf("Searching best servers...")
     var bestServerConfig by mutableStateOf<String?>(null)
     var pendingConfig: String? = null
+    var importedProfiles by mutableStateOf<List<OpenVpnProfile>>(emptyList())
+        private set
+    var activeProfileId by mutableStateOf<String?>(null)
+        private set
+    var activeProfileName by mutableStateOf<String?>(null)
+        private set
+    var profileMessage by mutableStateOf<String?>(null)
+        private set
 
     /** User-facing detailed error diagnostics for the main screen. */
     var lastErrorHeadline by mutableStateOf<String?>(null)
@@ -260,7 +279,152 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
         private set
 
     init {
-        loadServers()
+        viewModelScope.launch {
+            try {
+                importedProfiles = withContext(Dispatchers.IO) { profileStore.load() }
+                val rememberedId = preferences.getString(ACTIVE_PROFILE_ID_KEY, null)
+                importedProfiles.firstOrNull { it.id == rememberedId }?.let(::activateProfile)
+            } catch (error: Exception) {
+                profileMessage = "Could not load encrypted profiles: ${error.message ?: "storage error"}"
+                addLog("PROFILE", profileMessage!!)
+            } finally {
+                loadServers()
+            }
+        }
+    }
+
+    fun importOpenVpnProfile(uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val imported = withContext(Dispatchers.IO) {
+                    val resolver = getApplication<Application>().contentResolver
+                    val name = resolver.query(uri, arrayOf(OpenableColumns.DISPLAY_NAME), null, null, null)
+                        ?.use { cursor ->
+                            if (cursor.moveToFirst()) {
+                                cursor.getString(cursor.getColumnIndexOrThrow(OpenableColumns.DISPLAY_NAME))
+                            } else null
+                        } ?: "Imported OpenVPN profile"
+                    val content = resolver.openInputStream(uri)?.use { input ->
+                        val output = ByteArrayOutputStream()
+                        val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+                        var total = 0
+                        while (true) {
+                            val read = input.read(buffer)
+                            if (read < 0) break
+                            total += read
+                            require(total <= MAX_IMPORTED_PROFILE_BYTES) {
+                                "The selected file exceeds the 1 MiB import limit."
+                            }
+                            output.write(buffer, 0, read)
+                        }
+                        output.toByteArray().toString(StandardCharsets.UTF_8)
+                    } ?: throw IOException("Could not read the selected file.")
+                    profileStore.addProfile(name, content)
+                }
+                importedProfiles = imported
+                profileMessage = "Imported and validated ${imported.last().name}."
+                addLog(
+                    "PROFILE",
+                    "Imported ${imported.last().name}; endpoint ${imported.last().remote}; " +
+                        "${imported.last().routeCount} explicit route(s)."
+                )
+            } catch (error: Exception) {
+                profileMessage = "Profile import failed: ${error.message ?: "invalid profile"}"
+                addLog("PROFILE ERROR", profileMessage!!)
+            }
+        }
+    }
+
+    fun exportOpenVpnProfile(profileId: String, uri: Uri) {
+        viewModelScope.launch {
+            try {
+                val profile = importedProfiles.firstOrNull { it.id == profileId }
+                    ?: throw IllegalArgumentException("The selected profile is no longer available.")
+                withContext(Dispatchers.IO) {
+                    val output = getApplication<Application>().contentResolver.openOutputStream(uri)
+                        ?: throw IOException("Could not open the selected export location.")
+                    output.use { it.write(profile.config.toByteArray(StandardCharsets.UTF_8)) }
+                }
+                profileMessage = "Exported ${profile.name}. The file may contain keys; separately stored login credentials are not included."
+                addLog("PROFILE", "Exported ${profile.name} through Android's document picker.")
+            } catch (error: Exception) {
+                profileMessage = "Profile export failed: ${error.message ?: "storage error"}"
+                addLog("PROFILE ERROR", profileMessage!!)
+            }
+        }
+    }
+
+    fun selectImportedProfile(profileId: String): Boolean {
+        if (connectionState in listOf(
+                ConnectionState.CONNECTED,
+                ConnectionState.CONNECTING,
+                ConnectionState.RECONNECTING,
+                ConnectionState.PAUSED
+            )
+        ) {
+            profileMessage = "Disconnect the current tunnel before changing profiles."
+            return false
+        }
+        val profile = importedProfiles.firstOrNull { it.id == profileId } ?: return false
+        activateProfile(profile)
+        if (connectionState == ConnectionState.ERROR) {
+            lastErrorHeadline = null
+            lastErrorDetail = null
+            transitionTo(ConnectionState.IDLE, "imported profile selected")
+        }
+        vpnStatus = "Selected profile: ${profile.name}"
+        profileMessage = "Selected ${profile.name}. Connect to start its OpenVPN tunnel."
+        addLog("PROFILE", "Selected ${profile.name} → ${profile.remote}.")
+        return true
+    }
+
+    fun saveProfileCredentials(profileId: String, username: String, password: String) {
+        viewModelScope.launch {
+            try {
+                importedProfiles = withContext(Dispatchers.IO) {
+                    profileStore.updateCredentials(profileId, username, password)
+                }
+                importedProfiles.firstOrNull { it.id == activeProfileId }?.let(::activateProfile)
+                profileMessage = "Credentials saved encrypted for this profile."
+                addLog("PROFILE", "Saved credentials for profile $profileId.")
+            } catch (error: Exception) {
+                profileMessage = "Could not save credentials: ${error.message ?: "storage error"}"
+                addLog("PROFILE ERROR", profileMessage!!)
+            }
+        }
+    }
+
+    fun deleteImportedProfile(profileId: String) {
+        if (activeProfileId == profileId) {
+            activeProfileId = null
+            activeProfileName = null
+            vpnManager.clearCredentials()
+            val fallbackServer = selectedServer ?: fullServers.maxByOrNull { it.score }
+            selectedServer = fallbackServer
+            bestServerConfig = fallbackServer?.openVpnConfigDataBase64
+            isAutoSelectedBest = fallbackServer != null
+            preferences.edit().remove(ACTIVE_PROFILE_ID_KEY).apply()
+        }
+        viewModelScope.launch {
+            try {
+                importedProfiles = withContext(Dispatchers.IO) { profileStore.delete(profileId) }
+                profileMessage = "Deleted the imported profile."
+                addLog("PROFILE", "Deleted imported profile $profileId.")
+            } catch (error: Exception) {
+                profileMessage = "Could not delete the profile: ${error.message ?: "storage error"}"
+                addLog("PROFILE ERROR", profileMessage!!)
+            }
+        }
+    }
+
+    private fun activateProfile(profile: OpenVpnProfile) {
+        activeProfileId = profile.id
+        activeProfileName = profile.name
+        selectedServer = null
+        bestServerConfig = profile.toBase64Config()
+        isAutoSelectedBest = false
+        vpnManager.setCredentials(profile.username, profile.password)
+        preferences.edit().putString(ACTIVE_PROFILE_ID_KEY, profile.id).apply()
     }
 
     // ── Logging ─────────────────────────────────────────────────────────────────
@@ -663,6 +827,17 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
                 "Directory updated in ${fetchDurationMs}ms — ${fetched.size} nodes " +
                         "(${result.duplicatesRemoved} duplicate rows skipped). Active tunnel preserved."
             )
+        } else if (activeProfileId != null) {
+            // Keep a user-selected custom profile while refreshing the public directory.
+            selectedServer = null
+            if (connectionState == ConnectionState.SEARCHING_NODES ||
+                connectionState == ConnectionState.ERROR
+            ) {
+                lastErrorHeadline = null
+                lastErrorDetail = null
+                transitionTo(ConnectionState.IDLE, "custom profile ready")
+            }
+            vpnStatus = "Profile: ${activeProfileName ?: "OpenVPN"}"
         } else {
             if (selectedServer == null || currentInFetched == null) {
                 val best = fetched.maxByOrNull { it.score } ?: fetched.first()
@@ -719,6 +894,10 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
     fun getFullServer(ip: String): VpnServer? = serverLookup[ip]
 
     fun selectServer(server: VpnServer) {
+        activeProfileId = null
+        activeProfileName = null
+        vpnManager.clearCredentials()
+        preferences.edit().remove(ACTIVE_PROFILE_ID_KEY).apply()
         selectedServer = server
         bestServerConfig = server.openVpnConfigDataBase64
         val topScore = fullServers.maxOfOrNull { it.score } ?: 0L
@@ -829,7 +1008,7 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
         attemptLabel = "RETRYING CONNECTION..."
     }
 
-    fun onConnectRequested() {
+    fun onConnectRequested(): Boolean {
         val allowed = connectionState in listOf(
             ConnectionState.IDLE,
             ConnectionState.DISCONNECTED,
@@ -840,13 +1019,26 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
 
         if (!allowed) {
             logIgnored("connect")
-            return
+            return false
         }
 
+        val selectedProfile = importedProfiles.firstOrNull { it.id == activeProfileId }
+        if (selectedProfile?.requiresCredentials == true &&
+            (selectedProfile.username.isBlank() || selectedProfile.password.isBlank())
+        ) {
+            profileMessage = "This profile requires credentials. Enter and save them in the Files tab first."
+            failConnection(
+                "VPN Credentials Required",
+                "Enter the username and password provided by the authorized VPN server administrator, then save them in the Files tab.",
+                "Connection not started: required profile credentials are missing."
+            )
+            return false
+        }
         if (connectionState == ConnectionState.PAUSED) {
             // A stored pause session is about to be replaced — clear it cleanly.
             vpnManager.stopVpn()
         }
+        vpnManager.setCredentials(selectedProfile?.username, selectedProfile?.password)
 
         retryJob?.cancel()
         switchLaunchJob?.cancel()
@@ -861,11 +1053,16 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
         connectAttempts = if (manualSingleShotRetry) MAX_CONNECT_ATTEMPTS else 0
         beginAttempt()
         transitionTo(ConnectionState.CONNECTING, "user connect")
-        vpnStatus = "Connecting to ${selectedServer?.countryLong ?: "Gateway"}..."
+        vpnStatus = "Connecting to ${activeProfileName ?: selectedServer?.countryLong ?: "Gateway"}..."
         addLog(
             "CONNECT",
-            "Initiating tunnel → ${selectedServer?.countryLong ?: "?"} (${selectedServer?.ip ?: "?"}) · ${selectedServer?.ping ?: "?"}ms..."
+            if (activeProfileName != null) {
+                "Initiating imported OpenVPN profile → $activeProfileName."
+            } else {
+                "Initiating tunnel → ${selectedServer?.countryLong ?: "?"} (${selectedServer?.ip ?: "?"}) · ${selectedServer?.ping ?: "?"}ms..."
+            }
         )
+        return true
     }
 
     /** Config parse/launch failed inside VpnManager — report immediately, don't wait out the watchdog. */
@@ -988,6 +1185,8 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         private const val FAVORITE_IPS_KEY = "favorite_server_ips"
+        private const val ACTIVE_PROFILE_ID_KEY = "active_openvpn_profile_id"
+        private const val MAX_IMPORTED_PROFILE_BYTES = 1024 * 1024
 
         /** Extra attempts after the first one before surfacing a hard error banner. */
         private const val MAX_CONNECT_ATTEMPTS = 2

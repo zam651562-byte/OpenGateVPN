@@ -22,8 +22,8 @@ android {
         applicationId = "com.payaq.opengatevpn"
         minSdk = 24
         targetSdk = 36
-        versionCode = 3
-        versionName = "1.3.0"
+        versionCode = 4
+        versionName = "1.4.0"
 
         // Real devices only; x86/x86_64 are for desktop emulators and cost ~14MB of libopenvpn.so
         ndk {
@@ -75,12 +75,14 @@ dependencies {
     implementation(project(":vpnLib"))
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.activity.compose)
+    implementation("androidx.appcompat:appcompat:1.7.0")
     implementation(libs.androidx.compose.material3)
     implementation("androidx.compose.material:material-icons-extended")
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.core.ktx)
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.android)

@@ -46,12 +46,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.payaq.opengatevpn.data.model.VpnServerDisplay
+import com.payaq.opengatevpn.R
 import com.payaq.opengatevpn.ui.theme.BorderHairline
 import com.payaq.opengatevpn.ui.theme.LabelCaps
 import com.payaq.opengatevpn.ui.theme.Primary
@@ -91,7 +93,7 @@ fun ServersTabContent(
     ) {
         // Header
         Text(
-            text = "مستكشف الخوادم",
+            text = stringResource(R.string.server_explorer_title),
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.5).sp
@@ -109,7 +111,7 @@ fun ServersTabContent(
                     .background(StatusSuccess)
             )
             Text(
-                text = "${viewModel.displayServers.size} Nodes Available",
+                text = stringResource(R.string.server_count, viewModel.displayServers.size),
                 style = TechnicalData,
                 color = TextMuted
             )
@@ -129,7 +131,7 @@ fun ServersTabContent(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
                     imageVector = Icons.Rounded.Search,
-                    contentDescription = "Search",
+                    contentDescription = stringResource(R.string.server_search_hint),
                     tint = TextMuted,
                     modifier = Modifier.size(18.dp)
                 )
@@ -147,7 +149,7 @@ fun ServersTabContent(
                     decorationBox = { innerTextField ->
                         if (viewModel.searchQuery.isEmpty()) {
                             Text(
-                                text = "Search by country, IP, or hostname...",
+                                text = stringResource(R.string.server_search_hint),
                                 style = TechnicalData.copy(color = TextMuted, fontSize = 14.sp)
                             )
                         }
@@ -157,7 +159,7 @@ fun ServersTabContent(
                 if (viewModel.searchQuery.isNotEmpty()) {
                     Icon(
                         imageVector = Icons.Rounded.Close,
-                        contentDescription = "Clear Search",
+                        contentDescription = stringResource(R.string.server_clear_search),
                         tint = TextMuted,
                         modifier = Modifier
                             .size(18.dp)
@@ -177,7 +179,7 @@ fun ServersTabContent(
             ) {
                 item {
                     FilterChip(
-                        label = "ALL  (${viewModel.displayServers.size})",
+                        label = stringResource(R.string.server_filter_all, viewModel.displayServers.size),
                         isSelected = viewModel.selectedCountryFilter == null,
                         onClick = { viewModel.selectedCountryFilter = null }
                     )
@@ -204,35 +206,35 @@ fun ServersTabContent(
         ) {
             item {
                 FilterChip(
-                    label = "BEST OVERALL",
+                    label = stringResource(R.string.server_sort_overall),
                     isSelected = viewModel.activeSort == SortCriteria.OVERALL,
                     onClick = { viewModel.setSortCriteria(SortCriteria.OVERALL) }
                 )
             }
             item {
                 FilterChip(
-                    label = "TOP SCORE",
+                    label = stringResource(R.string.server_sort_score),
                     isSelected = viewModel.activeSort == SortCriteria.SCORE,
                     onClick = { viewModel.setSortCriteria(SortCriteria.SCORE) }
                 )
             }
             item {
                 FilterChip(
-                    label = "LOWEST PING",
+                    label = stringResource(R.string.server_sort_ping),
                     isSelected = viewModel.activeSort == SortCriteria.PING,
                     onClick = { viewModel.setSortCriteria(SortCriteria.PING) }
                 )
             }
             item {
                 FilterChip(
-                    label = "FASTEST",
+                    label = stringResource(R.string.server_sort_speed),
                     isSelected = viewModel.activeSort == SortCriteria.SPEED,
                     onClick = { viewModel.setSortCriteria(SortCriteria.SPEED) }
                 )
             }
             item {
                 FilterChip(
-                    label = "MOST ACTIVE",
+                    label = stringResource(R.string.server_sort_sessions),
                     isSelected = viewModel.activeSort == SortCriteria.SESSIONS,
                     onClick = { viewModel.setSortCriteria(SortCriteria.SESSIONS) }
                 )
@@ -241,14 +243,14 @@ fun ServersTabContent(
             // fewer bot-checks than datacenter IPs), best-ranked among equals.
             item {
                 FilterChip(
-                    label = "🏠 RESIDENTIAL  (${viewModel.residentialCount})",
+                    label = stringResource(R.string.server_filter_residential, viewModel.residentialCount),
                     isSelected = viewModel.residentialOnly,
                     onClick = { viewModel.residentialOnly = !viewModel.residentialOnly }
                 )
             }
             item {
                 FilterChip(
-                    label = "★ المفضلة  (${viewModel.favoriteIps.size})",
+                    label = stringResource(R.string.server_filter_favorites, viewModel.favoriteIps.size),
                     isSelected = viewModel.favoritesOnly,
                     onClick = { viewModel.favoritesOnly = !viewModel.favoritesOnly }
                 )
@@ -269,7 +271,7 @@ fun ServersTabContent(
                     // The directory fetch itself failed — say so honestly and offer a retry.
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "Fetch failed",
+                            text = stringResource(R.string.server_fetch_failed),
                             style = MaterialTheme.typography.bodyLarge,
                             color = Primary
                         )
@@ -283,7 +285,7 @@ fun ServersTabContent(
                         )
                         Spacer(modifier = Modifier.height(16.dp))
                         FilterChip(
-                            label = "RETRY",
+                            label = stringResource(R.string.server_retry),
                             isSelected = false,
                             onClick = { viewModel.loadServers() }
                         )
@@ -291,7 +293,7 @@ fun ServersTabContent(
                 } else {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
                         Text(
-                            text = "No servers found",
+                            text = stringResource(R.string.server_none_found),
                             style = MaterialTheme.typography.bodyLarge,
                             color = TextMuted
                         )
@@ -407,7 +409,7 @@ private fun AdvancedServerCard(
                     if (server.isResidential) {
                         Spacer(modifier = Modifier.width(6.dp))
                         Text(
-                            text = "🏠 RESIDENTIAL",
+                            text = stringResource(R.string.server_residential_badge),
                             style = LabelCaps.copy(fontSize = 7.sp, fontWeight = FontWeight.Bold),
                             color = Color(0xFF00E5FF),
                             modifier = Modifier
@@ -424,7 +426,7 @@ private fun AdvancedServerCard(
                                 .padding(horizontal = 4.dp, vertical = 1.dp)
                         ) {
                             Text(
-                                text = "ACTIVE",
+                                text = stringResource(R.string.server_active_badge),
                                 style = LabelCaps.copy(fontSize = 8.sp),
                                 color = StatusSuccess
                             )
@@ -468,7 +470,7 @@ private fun AdvancedServerCard(
                 Spacer(modifier = Modifier.width(8.dp))
                 Icon(
                     imageVector = Icons.Rounded.Check,
-                    contentDescription = "Selected",
+                    contentDescription = stringResource(R.string.server_selected),
                     tint = Primary,
                     modifier = Modifier.size(18.dp)
                 )
@@ -490,7 +492,7 @@ private fun AdvancedServerCard(
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
-                        text = "QUALITY",
+                        text = stringResource(R.string.server_quality),
                         style = LabelCaps.copy(fontSize = 9.sp),
                         color = TextMuted
                     )
@@ -520,7 +522,7 @@ private fun AdvancedServerCard(
             // Score metric
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "SCORE",
+                    text = stringResource(R.string.server_score),
                     style = LabelCaps.copy(fontSize = 9.sp),
                     color = TextMuted
                 )
@@ -534,7 +536,7 @@ private fun AdvancedServerCard(
             // Sessions count
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = "SESSIONS",
+                    text = stringResource(R.string.server_sessions),
                     style = LabelCaps.copy(fontSize = 9.sp),
                     color = TextMuted
                 )

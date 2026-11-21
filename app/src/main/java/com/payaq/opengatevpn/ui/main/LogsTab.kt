@@ -45,11 +45,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.payaq.opengatevpn.ui.theme.BorderHairline
+import com.payaq.opengatevpn.R
 import com.payaq.opengatevpn.ui.theme.GeistMono
 import com.payaq.opengatevpn.ui.theme.LabelCaps
 import com.payaq.opengatevpn.ui.theme.Primary
@@ -82,7 +84,7 @@ fun LogsTabContent(viewModel: VpnViewModel) {
         // ── Header ──
         Column {
             Text(
-                text = "Diagnostics & Console",
+                text = stringResource(R.string.diagnostics_title),
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp
@@ -91,7 +93,7 @@ fun LogsTabContent(viewModel: VpnViewModel) {
             )
             Spacer(modifier = Modifier.height(2.dp))
             Text(
-                text = "Security Specifications · Live Terminal Feed",
+                text = stringResource(R.string.diagnostics_subtitle),
                 style = TechnicalData,
                 color = TextMuted
             )
@@ -103,13 +105,13 @@ fun LogsTabContent(viewModel: VpnViewModel) {
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             CompactInfoCard(
-                title = "CIPHER",
+                title = stringResource(R.string.diagnostics_cipher),
                 value = "AES-256-CBC",
                 icon = Icons.Rounded.Security,
                 modifier = Modifier.weight(1f)
             )
             CompactInfoCard(
-                title = "PROTOCOL",
+                title = stringResource(R.string.diagnostics_protocol),
                 value = "OpenVPN UDP",
                 icon = Icons.Rounded.Lock,
                 modifier = Modifier.weight(1f)
@@ -128,10 +130,10 @@ fun LogsTabContent(viewModel: VpnViewModel) {
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
-                Text(text = "ENDPOINT IP", style = LabelCaps.copy(fontSize = 9.sp), color = TextMuted)
+                Text(text = stringResource(R.string.diagnostics_endpoint), style = LabelCaps.copy(fontSize = 9.sp), color = TextMuted)
                 Spacer(modifier = Modifier.height(2.dp))
                 Text(
-                    text = server?.ip ?: "None Selected",
+                    text = server?.ip ?: stringResource(R.string.diagnostics_no_endpoint),
                     style = TechnicalData.copy(fontSize = 13.sp),
                     color = Primary
                 )
@@ -155,7 +157,7 @@ fun LogsTabContent(viewModel: VpnViewModel) {
                     .padding(horizontal = 8.dp, vertical = 5.dp)
             ) {
                 Text(
-                    text = if (copiedIp) "COPIED" else "COPY IP",
+                    text = stringResource(if (copiedIp) R.string.diagnostics_copied else R.string.diagnostics_copy_ip),
                     style = LabelCaps.copy(fontSize = 9.sp),
                     color = if (copiedIp) StatusSuccess else Primary
                 )
@@ -287,13 +289,13 @@ private fun TerminalConsoleBox(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.DeleteOutline,
-                        contentDescription = "Clear Logs",
+                        contentDescription = stringResource(R.string.diagnostics_clear_logs),
                         tint = TextMuted,
                         modifier = Modifier.size(13.dp)
                     )
                     Spacer(modifier = Modifier.width(3.dp))
                     Text(
-                        text = "CLEAR",
+                        text = stringResource(R.string.diagnostics_clear),
                         style = LabelCaps.copy(fontSize = 9.sp),
                         color = TextMuted
                     )
@@ -315,7 +317,7 @@ private fun TerminalConsoleBox(
                 ) {
                     Icon(
                         imageVector = Icons.Rounded.ContentCopy,
-                        contentDescription = "Copy All Logs",
+                        contentDescription = stringResource(R.string.diagnostics_copy_logs),
                         tint = if (copiedLogs) StatusSuccess else Primary,
                         modifier = Modifier.size(11.dp)
                     )
@@ -344,7 +346,7 @@ private fun TerminalConsoleBox(
                 // Status banner line
                 item {
                     Text(
-                        text = "# Active Gateway Status: $vpnStatus",
+                        text = stringResource(R.string.diagnostics_active_gateway, vpnStatus),
                         style = TechnicalData.copy(
                             fontFamily = GeistMono,
                             fontSize = 11.sp,
@@ -362,7 +364,7 @@ private fun TerminalConsoleBox(
                 if (logs.isEmpty()) {
                     item {
                         Text(
-                            text = "[system] Session ready. Awaiting connection command...",
+                            text = "[system] ${stringResource(R.string.diagnostics_waiting)}",
                             style = TechnicalData.copy(
                                 fontFamily = GeistMono,
                                 fontSize = 11.sp,

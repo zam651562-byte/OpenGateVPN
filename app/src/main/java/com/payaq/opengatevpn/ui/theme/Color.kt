@@ -2,8 +2,7 @@ package com.payaq.opengatevpn.ui.theme
 
 import androidx.compose.ui.graphics.Color
 
-// ── Obsidian Protocol — Color Palette ──────────────────────────────────────────
-// Derived from the Stitch "OpenGate VPN Mobile Interface" design system.
+// ── Syria VPN — national color palette ─────────────────────────────────────────
 
 // Canvas & Surfaces
 val Void            = Color(0xFF000000)  // Pitch-black background
@@ -27,18 +26,21 @@ val OnSurface       = Color(0xFFE2E2E2)  // Primary text on dark surfaces
 val OnSurfaceVariant = Color(0xFFC4C7C8)
 val TextMuted       = Color(0xFF888888)  // Secondary / muted text
 
-// Primary — Pure White Accent
-val Primary         = Color(0xFFFFFFFF)
-val OnPrimary       = Color(0xFF2F3131)
-val PrimaryContainer = Color(0xFFE2E2E2)
+// Syria-inspired accents: green, white, black, and red.
+val SyriaGreen      = Color(0xFF007A3D)
+val SyriaRed        = Color(0xFFCE1126)
+val SyriaWhite      = Color(0xFFFFFFFF)
+val Primary         = SyriaGreen
+val OnPrimary       = SyriaWhite
+val PrimaryContainer = Color(0xFF0B3D26)
 
 // Secondary
-val Secondary       = Color(0xFFC9C6C5)
-val SecondaryContainer = Color(0xFF4A4949)
+val Secondary       = SyriaWhite
+val SecondaryContainer = Color(0xFF252525)
 
 // Functional Status
-val StatusSuccess   = Color(0xFF007A3D)  // Syrian green / Connected
-val StatusError     = Color(0xFFCE1126)  // Syrian red / Error
+val StatusSuccess   = SyriaGreen
+val StatusError     = SyriaRed
 val StatusPaused    = Color(0xFFFFBF00)  // Amber — Paused state
 
 // Error (Material3 slots)

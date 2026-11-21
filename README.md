@@ -30,6 +30,16 @@ no ads, no tracking — pick a gateway and connect.
   actions for Telegram, Facebook, email, and Sham Cash.
 - **Favorite gateways** — save trusted servers on-device and quickly filter the
   complete server directory to your favorites.
+- **Arabic and English UI** — choose the app language in the Profiles tab;
+  Arabic uses RTL layout while English uses LTR. The interface uses a Syria-
+  inspired green, white, black, and red palette.
+- **Authorized OpenVPN profiles** — import, validate, select, and export
+  self-contained `.ovpn` profiles using the same bundled OpenVPN engine.
+  Profiles are stored encrypted in app-private storage; standard profile DNS,
+  TLS, proxy, and routing directives are applied by OpenVPN rather than
+  simulated in the interface. Username/password authentication is supported
+  for profiles that request it, with credentials stored encrypted separately
+  from the exported configuration.
 
 ## How it works
 
@@ -39,11 +49,23 @@ engine. All traffic runs through a standard Android `VpnService` tunnel using
 OpenVPN (UDP/TCP, AES encryption). The app connects with placeholder
 credentials — VPN Gate relays accept anonymous connections.
 
+The **الملفات** tab also accepts self-contained `.ovpn` profiles. Each imported
+profile is parsed before it is saved, and its configured remote endpoints,
+DNS servers, routes, and default-route request are summarized for review.
+Selecting one passes its original configuration to the same OpenVPN engine;
+it does not add a separate proxy, payload injector, or traffic-obfuscation
+transport. External key-file references and executable script/plugin
+directives are rejected. Exported profiles remain plaintext files and may
+contain private keys or other secrets, so save them only to trusted locations.
+Separately stored username/password credentials are not included in exports.
+
 ## Download
 
-Grab the latest signed APK from
-[**Releases**](../../releases) and install it directly
-(enable *Install unknown apps* for your browser/file manager when prompted).
+Download the [OpenGateVPN 1.4.0 APK](release/OpenGateVPN-1.4.0-debug-signed.apk)
+from this repository and install it directly (enable *Install unknown apps*
+for your browser/file manager when prompted). This repository copy is signed
+with the Android debug key because no private release keystore is included;
+it is installable but is not a production-signed release.
 
 For official support channels and contact details, use the **الدعم** tab in the
 app. See [CHANGELOG.md](CHANGELOG.md) for changes.
@@ -84,12 +106,14 @@ app/                                # The Android application (Kotlin + Compose)
     │   ├── repository/
     │   │   └── VpnRepository.kt    # Single data entry point for the ViewModel
     │   └── vpn/
-    │       └── VpnManager.kt       # Profile parsing, connect/disconnect,
-    │                               #   pause/resume of the OpenVPN tunnel
+    │       ├── VpnManager.kt       # Profile parsing, connect/disconnect,
+    │       │                       #   pause/resume of the OpenVPN tunnel
+    │       └── OpenVpnProfileStore.kt # Encrypted profile storage + validation
     └── ui/
         ├── main/
         │   ├── MainScreen.kt       # Root scaffold, tabs, splash animation
         │   ├── ConnectionTab.kt    # Connect button, timer, telemetry, server card
+        │   ├── ProfilesTab.kt      # Import, select, credentials, and export UI
         │   ├── ServersTab.kt       # Server explorer: search/filter/sort
         │   ├── LogsTab.kt          # Diagnostics console + security info
         │   └── VpnViewModel.kt     # Connection state machine, retries,
@@ -150,3 +174,8 @@ Always-on VPN and “Block connections without VPN” settings are separate from
 the app and should be configured by the user if a device-wide lockdown is
 needed. Carrier-specific performance and leak behavior require real-device
 testing on those networks.
+
+Imported OpenVPN routing and DNS options take effect only as defined by the
+selected server profile and Android's VPN service. The app does not override
+carrier plan limits or turn restricted app-only connectivity into general
+internet access.

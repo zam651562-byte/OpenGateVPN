@@ -14,6 +14,18 @@ import java.io.StringReader
 class VpnManager(private val context: Context) {
 
     private var activeConfig: String? = null
+    private var configuredUsername: String? = null
+    private var configuredPassword: String? = null
+
+    fun setCredentials(username: String?, password: String?) {
+        configuredUsername = username
+        configuredPassword = password
+    }
+
+    fun clearCredentials() {
+        configuredUsername = null
+        configuredPassword = null
+    }
 
     /**
      * Launches the OpenVPN process for the given config.
@@ -41,9 +53,16 @@ class VpnManager(private val context: Context) {
             val parser = ConfigParser()
             parser.parseConfig(StringReader(ovpnConfigText))
             val profile = parser.convertProfile()
+            require(profile.mConnections.any { it.mEnabled && it.mServerName.isNotBlank() }) {
+                "The OpenVPN profile does not contain an enabled remote endpoint."
+            }
 
-            profile.mUsername = "vpn"
-            profile.mPassword = "vpn"
+            profile.mUsername = configuredUsername?.takeIf { it.isNotBlank() }
+                ?: profile.mUsername?.takeIf { it.isNotBlank() }
+                ?: "vpn"
+            profile.mPassword = configuredPassword?.takeIf { it.isNotBlank() }
+                ?: profile.mPassword?.takeIf { it.isNotBlank() }
+                ?: "vpn"
             profile.mProfileCreator = context.packageName
 
             setTemporaryProfile(context, profile)
@@ -67,6 +86,7 @@ class VpnManager(private val context: Context) {
             context.startService(disconnectIntent)
 
             activeConfig = null
+            clearCredentials()
             true
         } catch (e: Exception) {
             Log.e(TAG, "stopVpn failed", e)
@@ -81,9 +101,12 @@ class VpnManager(private val context: Context) {
     /** Tears down the tunnel but remembers its config so resume can restart it. */
     fun pauseVpn(): Boolean {
         val lastRunning = activeConfig
+        val lastUsername = configuredUsername
+        val lastPassword = configuredPassword
         val stopped = stopVpn()
         // Keep memory of activeConfig so resume knows which one to restart
         activeConfig = lastRunning
+        setCredentials(lastUsername, lastPassword)
         return stopped
     }
 

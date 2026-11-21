@@ -4,7 +4,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.Composable
 
-// ── Obsidian Protocol — Theme ──────────────────────────────────────────────────
+// ── Syria VPN — Theme ─────────────────────────────────────────────────────────
 // Always-dark theme. No dynamic color, no light variant.
 
 private val ObsidianColorScheme = darkColorScheme(
@@ -16,7 +16,7 @@ private val ObsidianColorScheme = darkColorScheme(
     onSecondary          = OnPrimary,
     secondaryContainer   = SecondaryContainer,
     onSecondaryContainer = OnSurface,
-    tertiary             = Primary,
+    tertiary             = StatusError,
     onTertiary           = OnPrimary,
     background           = Void,
     onBackground         = OnSurface,
