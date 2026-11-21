@@ -61,10 +61,6 @@ data class LogEntry(
 
 class VpnViewModel(application: Application) : AndroidViewModel(application) {
 
-    companion object {
-        private const val FAVORITE_IPS_KEY = "favorite_server_ips"
-    }
-
     private val repository = VpnRepository()
     val vpnManager = VpnManager(application)
     private val preferences = application.getSharedPreferences("syria_vpn_preferences", Context.MODE_PRIVATE)
@@ -991,6 +987,8 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
     }
 
     companion object {
+        private const val FAVORITE_IPS_KEY = "favorite_server_ips"
+
         /** Extra attempts after the first one before surfacing a hard error banner. */
         private const val MAX_CONNECT_ATTEMPTS = 2
 

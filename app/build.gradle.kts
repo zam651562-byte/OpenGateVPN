@@ -15,13 +15,13 @@ val keystoreProps = Properties().apply {
 android {
     namespace = "com.payaq.opengatevpn"
     compileSdk {
-        version = release(37)
+        version = release(36)
     }
 
     defaultConfig {
         applicationId = "com.payaq.opengatevpn"
         minSdk = 24
-        targetSdk = 37
+        targetSdk = 36
         versionCode = 3
         versionName = "1.3.0"
 
