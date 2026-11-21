@@ -267,7 +267,7 @@ private fun SplashScreen() {
 
             // App Name (Minimalist, Crisp Monochrome Typography)
             Text(
-                text = "OpenGate VPN",
+                text = "سوريا VPN",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.SemiBold,
                     letterSpacing = 3.sp
@@ -279,7 +279,7 @@ private fun SplashScreen() {
 
             // Subtitle Status
             Text(
-                text = "INITIALIZING",
+                text = "جارٍ التحضير...",
                 style = LabelCaps.copy(
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Normal,
@@ -309,21 +309,21 @@ private fun BottomNavBar(
         NavTab(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.Shield,
-            label = "Connect",
+            label = "الاتصال",
             isSelected = selectedTab == 0,
             onClick = { onTabSelected(0) }
         )
         NavTab(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.Dns,
-            label = "Servers",
+            label = "الخوادم",
             isSelected = selectedTab == 1,
             onClick = { onTabSelected(1) }
         )
         NavTab(
             modifier = Modifier.weight(1f),
             icon = Icons.Rounded.Terminal,
-            label = "Logs",
+            label = "السجل",
             isSelected = selectedTab == 2,
             onClick = { onTabSelected(2) }
         )
@@ -434,7 +434,7 @@ private fun TopBar(
             )
             Spacer(modifier = Modifier.width(10.dp))
             Text(
-                text = "OpenGate",
+                text = "سوريا",
                 style = MaterialTheme.typography.headlineMedium.copy(
                     fontWeight = FontWeight.Bold,
                     letterSpacing = (-0.5).sp

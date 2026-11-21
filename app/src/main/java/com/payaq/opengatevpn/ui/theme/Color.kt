@@ -37,8 +37,8 @@ val Secondary       = Color(0xFFC9C6C5)
 val SecondaryContainer = Color(0xFF4A4949)
 
 // Functional Status
-val StatusSuccess   = Color(0xFF00FF66)  // Connected / Active
-val StatusError     = Color(0xFFFF3333)  // Error / Disconnect
+val StatusSuccess   = Color(0xFF007A3D)  // Syrian green / Connected
+val StatusError     = Color(0xFFCE1126)  // Syrian red / Error
 val StatusPaused    = Color(0xFFFFBF00)  // Amber — Paused state
 
 // Error (Material3 slots)

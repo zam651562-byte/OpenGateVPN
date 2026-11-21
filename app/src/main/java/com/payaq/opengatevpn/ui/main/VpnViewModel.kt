@@ -1,6 +1,7 @@
 package com.payaq.opengatevpn.ui.main
 
 import android.app.Application
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import androidx.compose.runtime.derivedStateOf
@@ -60,8 +61,13 @@ data class LogEntry(
 
 class VpnViewModel(application: Application) : AndroidViewModel(application) {
 
+    companion object {
+        private const val FAVORITE_IPS_KEY = "favorite_server_ips"
+    }
+
     private val repository = VpnRepository()
     val vpnManager = VpnManager(application)
+    private val preferences = application.getSharedPreferences("syria_vpn_preferences", Context.MODE_PRIVATE)
 
     // ── UI State ────────────────────────────────────────────────────────────────
     var vpnStatus by mutableStateOf("Searching best servers...")
@@ -132,6 +138,13 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
      */
     var residentialOnly by mutableStateOf(false)
 
+    /** Favorite nodes are stored on-device and survive app restarts. */
+    var favoritesOnly by mutableStateOf(false)
+    var favoriteIps by mutableStateOf(
+        preferences.getStringSet(FAVORITE_IPS_KEY, emptySet())?.toSet() ?: emptySet()
+    )
+        private set
+
     /** How many of the current nodes are classified as likely-residential. */
     val residentialCount by derivedStateOf {
         displayServers.count { it.isResidential }
@@ -153,7 +166,10 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
                         server.ip.contains(query, ignoreCase = true)
             }
             val matchesCountry = selectedCountryFilter?.let { it == server.countryLong } ?: true
-            (!residentialOnly || server.isResidential) && matchesQuery && matchesCountry
+            (!residentialOnly || server.isResidential) &&
+                    (!favoritesOnly || favoriteIps.contains(server.ip)) &&
+                    matchesQuery &&
+                    matchesCountry
         }
         if (residentialOnly) {
             return@derivedStateOf list.sortedWith(
@@ -733,6 +749,14 @@ class VpnViewModel(application: Application) : AndroidViewModel(application) {
 
     fun setSortCriteria(sort: SortCriteria) {
         activeSort = sort
+    }
+
+    fun toggleFavorite(ip: String) {
+        val updated = favoriteIps.toMutableSet()
+        if (!updated.add(ip)) updated.remove(ip)
+        favoriteIps = updated.toSet()
+        preferences.edit().putStringSet(FAVORITE_IPS_KEY, favoriteIps).apply()
+        addLog("FAVORITE", if (favoriteIps.contains(ip)) "Saved $ip" else "Removed $ip")
     }
 
     /**

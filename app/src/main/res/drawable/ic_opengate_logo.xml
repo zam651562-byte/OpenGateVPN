@@ -6,7 +6,7 @@
 
     <!-- Minimalist Geometric Shield -->
     <path
-        android:strokeColor="#FFFFFF"
+        android:strokeColor="#007A3D"
         android:strokeWidth="3.2"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"
@@ -15,7 +15,7 @@
 
     <!-- Minimalist Gate / Key Core -->
     <path
-        android:strokeColor="#FFFFFF"
+        android:strokeColor="#CE1126"
         android:strokeWidth="2.4"
         android:strokeLineCap="round"
         android:strokeLineJoin="round"

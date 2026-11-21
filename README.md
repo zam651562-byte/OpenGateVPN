@@ -1,4 +1,4 @@
-# OpenGate VPN
+# سوريا VPN
 
 A lightweight, open-source VPN client for Android, built around the free public
 [VPN Gate](https://www.vpngate.net/en/) relay network. **6.7 MB** APK, no account,
@@ -28,6 +28,8 @@ no ads, no tracking — pick a gateway and connect.
   no phantom states.
 - **Official support links** — in-app Arabic support section with open/copy
   actions for Telegram, Facebook, email, and Sham Cash.
+- **Favorite gateways** — save trusted servers on-device and quickly filter the
+  complete server directory to your favorites.
 
 ## How it works
 

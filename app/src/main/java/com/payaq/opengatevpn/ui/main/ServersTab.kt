@@ -29,7 +29,10 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Star
+import androidx.compose.material.icons.rounded.StarBorder
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -75,6 +78,7 @@ fun ServersTabContent(
         viewModel.activeSort,
         viewModel.selectedCountryFilter,
         viewModel.residentialOnly,
+        viewModel.favoritesOnly,
         viewModel.searchQuery,
         viewModel.displayServers
     ) {
@@ -87,7 +91,7 @@ fun ServersTabContent(
     ) {
         // Header
         Text(
-            text = "Server Explorer",
+            text = "مستكشف الخوادم",
             style = MaterialTheme.typography.headlineMedium.copy(
                 fontWeight = FontWeight.Bold,
                 letterSpacing = (-0.5).sp
@@ -242,6 +246,13 @@ fun ServersTabContent(
                     onClick = { viewModel.residentialOnly = !viewModel.residentialOnly }
                 )
             }
+            item {
+                FilterChip(
+                    label = "★ المفضلة  (${viewModel.favoriteIps.size})",
+                    isSelected = viewModel.favoritesOnly,
+                    onClick = { viewModel.favoritesOnly = !viewModel.favoritesOnly }
+                )
+            }
         }
 
         Spacer(modifier = Modifier.height(12.dp))
@@ -311,6 +322,8 @@ fun ServersTabContent(
                     AdvancedServerCard(
                         server = srv,
                         isSelected = isSelected,
+                        isFavorite = viewModel.favoriteIps.contains(srv.ip),
+                        onFavoriteClick = { viewModel.toggleFavorite(srv.ip) },
                         onClick = { onServerSelected(srv) }
                     )
                 }
@@ -328,6 +341,8 @@ fun ServersTabContent(
 private fun AdvancedServerCard(
     server: VpnServerDisplay,
     isSelected: Boolean,
+    isFavorite: Boolean,
+    onFavoriteClick: () -> Unit,
     onClick: () -> Unit
 ) {
     // Sub-15ms reports are physically implausible for an internet relay — treat
@@ -421,6 +436,17 @@ private fun AdvancedServerCard(
                     text = server.ip,
                     style = TechnicalData,
                     color = TextMuted
+                )
+            }
+
+            IconButton(
+                onClick = onFavoriteClick,
+                modifier = Modifier.size(36.dp)
+            ) {
+                Icon(
+                    imageVector = if (isFavorite) Icons.Rounded.Star else Icons.Rounded.StarBorder,
+                    contentDescription = if (isFavorite) "إزالة من المفضلة" else "إضافة إلى المفضلة",
+                    tint = if (isFavorite) StatusSuccess else TextMuted
                 )
             }
 
